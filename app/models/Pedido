@@ -1,0 +1,73 @@
+<?php
+// ============================================
+// ARCHIVO: app/models/Pedido.php
+// ============================================
+
+class Pedido extends Model {
+    
+    public function create($data) {
+        // Generar token único de seguimiento
+        $data['token_seguimiento'] = $this->generateToken();
+        return $this->insert('pedidos', $data);
+    }
+    
+    public function getById($id, $restaurant_id) {
+        $sql = "SELECT p.*, s.nombre as sucursal_nombre, r.nombre as repartidor_nombre
+                FROM pedidos p
+                JOIN sucursales s ON p.sucursal_id = s.id
+                LEFT JOIN repartidores r ON p.repartidor_id = r.id
+                WHERE p.id = ? AND p.restaurante_id = ?";
+        return $this->fetch($sql, [$id, $restaurant_id]);
+    }
+    
+    public function getByToken($token) {
+        $sql = "SELECT p.*, s.nombre as sucursal_nombre, r.nombre as repartidor_nombre
+                FROM pedidos p
+                JOIN sucursales s ON p.sucursal_id = s.id
+                LEFT JOIN repartidores r ON p.repartidor_id = r.id
+                WHERE p.token_seguimiento = ?";
+        return $this->fetch($sql, [$token]);
+    }
+    
+    public function getByUsuario($user_id, $restaurant_id) {
+        $sql = "SELECT p.*, s.nombre as sucursal_nombre
+                FROM pedidos p
+                JOIN sucursales s ON p.sucursal_id = s.id
+                WHERE p.usuario_id = ? AND p.restaurante_id = ?
+                ORDER BY p.creado_en DESC";
+        return $this->fetchAll($sql, [$user_id, $restaurant_id]);
+    }
+    
+    public function getDetalle($pedido_id) {
+        $sql = "SELECT dp.*, p.nombre as producto_nombre, pr.nombre as presentacion_nombre
+                FROM detalle_pedidos dp
+                JOIN productos p ON dp.producto_id = p.id
+                JOIN presentaciones pr ON dp.presentacion_id = pr.id
+                WHERE dp.pedido_id = ?
+                ORDER BY dp.id";
+        return $this->fetchAll($sql, [$pedido_id]);
+    }
+    
+    public function updateEstado($pedido_id, $estado) {
+        return $this->update('pedidos', 
+            ['estado' => $estado], 
+            'id = ?', 
+            [$pedido_id]);
+    }
+    
+    public function updateEstadoPago($pedido_id, $estado_pago) {
+        return $this->update('pedidos', 
+            ['estado_pago' => $estado_pago], 
+            'id = ?', 
+            [$pedido_id]);
+    }
+    
+    private function generateToken() {
+        return bin2hex(random_bytes(32));
+    }
+    
+    public function addDetalle($pedido_id, $detalle) {
+        $detalle['pedido_id'] = $pedido_id;
+        return $this->insert('detalle_pedidos', $detalle);
+    }
+}

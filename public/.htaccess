@@ -1,0 +1,12 @@
+RewriteEngine On
+
+# Redireccionar todo al front controller
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php?url=$1 [QSA,L]
+
+# Bloquear archivos sensibles
+<FilesMatch "\.(env|ini|log|conf)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
